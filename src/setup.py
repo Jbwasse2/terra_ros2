@@ -22,6 +22,7 @@ setup(
         'console_scripts': [
                 'camera_publisher = terra_camera.camera:main',
                 'waypoint_publisher = terra_camera.waypoint:main',
+                'video_publisher = terra_camera.video_streamer:main',
         ],
     },
 )

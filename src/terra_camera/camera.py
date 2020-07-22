@@ -21,6 +21,8 @@ class CameraPublisher(Node):
 
     def timer_callback(self):
         ret, frame = self.cap.read()
+        if not ret:
+            frame = np.random.randint(255, size=(480,640,3), dtype=np.uint8)
         msg = Image()
         header = Header()
         header.frame_id = str(self.counter)
