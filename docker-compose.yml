@@ -1,0 +1,14 @@
+version: '3.7'
+services:
+  dev:
+    image: 'jbwasse2/ros2'
+    volumes:
+      - './terra_ros2:/terra_ros2'
+      - './rmp_nav:/terra_ros2/src/terra_camera/rmp_nav'
+    command: './run_stuff.sh camera_publisher'
+  maven:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: 'jbwasse2:ros2'
+    container_name: 'terra_ros2'
