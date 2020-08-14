@@ -21,8 +21,10 @@ setup(
     entry_points={
         'console_scripts': [
                 'camera_publisher = terra_camera.camera:main',
-                'waypoint_publisher = terra_camera.waypoint:main',
                 'video_publisher = terra_camera.video_streamer:main',
+                'waypoint_publisher = terra_camera.waypoint:main',
+                'dummy_waypoint_publisher = terra_camera.waypoint:dummy_main',
+                'terra_comm_twist = terra_camera.terra_comm:twist_main',
         ],
     },
 )

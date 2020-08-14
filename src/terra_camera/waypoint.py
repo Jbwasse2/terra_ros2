@@ -1,24 +1,20 @@
+import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pudb
 
-import matplotlib.pyplot as plt
 import cv2
 import rclpy
-from rmp_nav.simulation import agent_factory, sim_renderer
-from rmp_nav.common.utils import (
-    get_gibson_asset_dir,
-    get_project_root,
-    pprint_dict,
-    str_to_dict,
-)
-from topological_nav.reachability import model_factory
 from cv_bridge import CvBridge, CvBridgeError
-from rclpy.node import Node
-from sensor_msgs.msg import Image
 from geometry_msgs.msg import Point32
+from rclpy.node import Node
+from rmp_nav.common.utils import (get_gibson_asset_dir, get_project_root,
+                                  pprint_dict, str_to_dict)
+from rmp_nav.simulation import agent_factory, sim_renderer
+from sensor_msgs.msg import Image
+from topological_nav.reachability import model_factory
 
-import os
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 class WaypointPublisher(Node):
@@ -111,7 +107,10 @@ class WaypointPublisher(Node):
         self.destroy_node()
         rclpy.shutdown()
 
+
 def main(args=None):
+    import pudb
+    pu.db
     rclpy.init(args=args)
 
     waypoint_publisher = WaypointPublisher()
@@ -126,4 +125,6 @@ def main(args=None):
 
 
 if __name__ == '__main__':
+    import pudb
+    pu.db
     main()

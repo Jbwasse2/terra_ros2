@@ -24,6 +24,7 @@ class VideoPublisher(Node):
 
     def timer_callback(self):
         video_length = self.trajectory.shape[0]
+        assert video_length is not 0
         frame = self.trajectory[self.counter % video_length, :, :, :]
         msg = Image()
         header = Header()
