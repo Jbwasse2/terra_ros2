@@ -25,6 +25,8 @@ setup(
                 'waypoint_publisher = terra_camera.waypoint:main',
                 'dummy_waypoint_publisher = terra_camera.waypoint:dummy_main',
                 'terra_comm_twist = terra_camera.terra_comm:twist_main',
+                'terra_comm_twist_dummy_client = terra_camera.terra_comm:twist_dummy_client_main',
+                'terra_comm_twist_dummy_server = terra_camera.terra_comm:twist_dummy_server_main',
         ],
     },
 )
