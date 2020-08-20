@@ -109,8 +109,6 @@ class WaypointPublisher(Node):
 
 
 def main(args=None):
-    import pudb
-    pu.db
     rclpy.init(args=args)
 
     waypoint_publisher = WaypointPublisher()
@@ -125,6 +123,4 @@ def main(args=None):
 
 
 if __name__ == '__main__':
-    import pudb
-    pu.db
     main()
