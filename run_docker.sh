@@ -5,8 +5,7 @@ docker run -it --rm \
     -v /home/justin/research/ros/terra_ros2/terra_ros2/install:/terra_ros2/install \
     -v /home/justin/research/ros/terra_ros2/terra_ros2/run_stuff.sh:/terra_ros2/run_stuff.sh \
     -v /home/justin/research/ros/terra_ros2/terra_ros2/requirements.txt:/terra_ros2/requirements.txt \
-    -e DIR=/terra_ros2/rmp_nav \
-    -e RMP_NAV_ROOT=/terra_ros2/rmp_nav \
+    --network host  \
     jbwasse2/ros2 \
-    #/bin/sh -c "/terra_ros2/run_stuff.sh $ROS_NODE"
-    export PYTHONPATH="${PYTHONPATH}:/terra_ros2/rmp_nav" && /bin/sh
+    /bin/sh -c "/terra_ros2/run_stuff.sh $ROS_NODE"
+#   /bin/sh
