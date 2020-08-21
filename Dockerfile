@@ -8,6 +8,45 @@ FROM osrf/ros:dashing-desktop
 RUN mkdir /terra_ros2
 COPY terra_ros2 /terra_ros2
 COPY rmp_nav /terra_ros2/rmp_nav
+#rmp for network stuff
+ENV RTI_NC_LICENSE_ACCEPTED yes
+
+# bootstrap rosdep
+RUN rosdep update
+
+# install dependencies
+RUN . /opt/ros/$ROS_DISTRO/setup.sh \
+    && apt-get update \
+    && rosdep install -y \
+    --from-paths /opt/ros/$ROS_DISTRO/share \
+    --ignore-src \
+    --skip-keys " \
+      " \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# set up environment
+ENV NDDSHOME /opt/rti.com/rti_connext_dds-5.3.1
+ENV PATH "$NDDSHOME/bin":$PATH
+ENV LD_LIBRARY_PATH "$NDDSHOME/lib/x64Linux3gcc5.4.0":$LD_LIBRARY_PATH
+# bootstrap rosdep
+RUN rosdep update --rosdistro $ROS_DISTRO
+
+# install dependencies
+RUN . /opt/ros/$ROS_DISTRO/setup.sh \
+    && apt-get update \
+    && rosdep install -y \
+    --from-paths /opt/ros/$ROS_DISTRO/share \
+    --ignore-src \
+    --skip-keys " \
+      " \
+    && rm -rf /var/lib/apt/lists/*
+
+
+# set up environment
+ENV NDDSHOME /opt/rti.com/rti_connext_dds-5.3.1
+ENV PATH "$NDDSHOME/bin":$PATH
+ENV LD_LIBRARY_PATH "$NDDSHOME/lib/x64Linux3gcc5.4.0":$LD_LIBRARY_PATH
 # launch ros package
 WORKDIR "/terra_ros2"
 RUN apt-get update
@@ -54,6 +93,7 @@ RUN export uid=1000 gid=1000 && \
 
 USER developer
 ENV HOME /home/developer
+
 
 
 CMD ["bash"]
