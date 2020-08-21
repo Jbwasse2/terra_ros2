@@ -15,7 +15,7 @@ from rmp_nav.simulation import agent_factory, sim_renderer
 from sensor_msgs.msg import Image
 from topological_nav.reachability import model_factory
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 class WaypointPublisher(Node):
 

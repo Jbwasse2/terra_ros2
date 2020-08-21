@@ -1,5 +1,4 @@
-FROM ros:dashing
-
+FROM osrf/ros:dashing-desktop
 # install ros package
 #RUN apt-get update && apt-get install -y \
 #      ros-${ROS_DISTRO}-demo-nodes-cpp \
@@ -18,7 +17,7 @@ RUN apt-get -y install libcairo2-dev
 RUN apt-get -y install python3-pip
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt --ignore-installed
-RUN pip3 install torch torchvision
+RUN pip3 install torch==1.3.1 torchvision==0.4.2+cu92 -f https://download.pytorch.org/whl/torch_stable.html
 RUN pip3 install \
     -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-18.04 \
     wxPython
@@ -33,9 +32,28 @@ ENV DIR=/terra_ros2/rmp_nav
 ENV PYTHONPATH=/terra_ros2/rmp_nav
 ENV RMP_NAV_ROOT=/terra_ros2/rmp_nav
 
+ENV PATH /usr/local/cuda/bin/:$PATH
+ENV LD_LIBRARY_PATH /usr/local/cuda/lib:/usr/local/cuda/lib64
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+
+LABEL com.nvidia.volumes.needed="nvidia_driver"
+
 RUN /terra_ros2/rmp_nav/tools/build_rangelibc.sh
 RUN /terra_ros2/rmp_nav/tools/compile_python_cpp_libs.sh
-RUN python -c "import numpy"
+
+#Install graphics stuff to comm with X11
+# Install vnc, xvfb in order to create a 'fake' display and firefox
+RUN export uid=1000 gid=1000 && \
+    mkdir -p /home/developer && \
+    echo "developer:x:${uid}:${gid}:Developer,,,:/home/developer:/bin/bash" >> /etc/passwd && \
+    echo "developer:x:${uid}:" >> /etc/group && \
+    echo "developer ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/developer && \
+    chmod 0440 /etc/sudoers.d/developer && \
+    chown ${uid}:${gid} -R /home/developer
+
+USER developer
+ENV HOME /home/developer
 
 
 CMD ["bash"]
