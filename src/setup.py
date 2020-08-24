@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-                'camera_publisher = terra_camera.camera:main',
+                'webcamera_publisher = terra_camera.camera:main',
+                'robot_front_camera_publisher = terra_camera.robot_main',
                 'video_publisher = terra_camera.video_streamer:main',
                 'waypoint_publisher = terra_camera.waypoint:main',
                 'dummy_waypoint_publisher = terra_camera.waypoint:dummy_main',

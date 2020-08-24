@@ -1,6 +1,5 @@
 scikit-build
 pudb
-opencv-python
 tqdm
 pycairo==1.18.1
 msgpack_numpy==0.4.4.2
