@@ -13,7 +13,6 @@ class CameraPublisher(Node):
 
     def __init__(self, camera_id=1, stream_video=False):
         super().__init__('camera_publisher')
-        pu.db
         self.stream_video=stream_video
         self.cap = cv2.VideoCapture(camera_id)
         self.publisher_ = self.create_publisher(Image, 'camera', 1)
@@ -35,6 +34,7 @@ class CameraPublisher(Node):
         if self.stream_video:
             cv2.imshow('frame', frame )
             cv2.waitKey(1)
+        frame = cv2.resize(frame, dsize=(64,64), interpolation=cv2.INTER_CUBIC)
 
         msg.header = header
         msg.height = frame.shape[0]
@@ -51,7 +51,7 @@ class CameraPublisher(Node):
         self.cap.release()
 
 def robot_main(args=None):
-    pu.db
+    print("TODO")
     rclpy.init(args=args)
 
     camera_publisher = RobotCameraPublisher()
@@ -65,11 +65,10 @@ def robot_main(args=None):
 
 
 def main(args=None):
-    print("HI")
-    pu.db
     rclpy.init(args=args)
 
-    camera_publisher = CameraPublisher(camera_id=0, stream_video=True)
+    #Video stream doesnt work when ssh into machine and then run docker. TODO
+    camera_publisher = CameraPublisher(camera_id=1, stream_video=False)
     rclpy.spin(camera_publisher)
 
     # Destroy the node explicitly
