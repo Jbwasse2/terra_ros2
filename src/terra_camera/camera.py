@@ -1,12 +1,12 @@
 import numpy as np
-
-import cv2
-import rclpy
 import pudb
+import rclpy
 from cv_bridge import CvBridge, CvBridgeError
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
+
+import cv2
 
 
 class CameraPublisher(Node):
@@ -51,6 +51,7 @@ class CameraPublisher(Node):
         self.cap.release()
 
 def robot_main(args=None):
+    pu.db
     rclpy.init(args=args)
 
     camera_publisher = RobotCameraPublisher()
@@ -64,9 +65,11 @@ def robot_main(args=None):
 
 
 def main(args=None):
+    print("HI")
+    pu.db
     rclpy.init(args=args)
 
-    camera_publisher = CameraPublisher(camera_id=1, stream_video=True)
+    camera_publisher = CameraPublisher(camera_id=0, stream_video=True)
     rclpy.spin(camera_publisher)
 
     # Destroy the node explicitly

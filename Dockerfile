@@ -91,7 +91,9 @@ RUN export uid=1000 gid=1000 && \
     chmod 0440 /etc/sudoers.d/developer && \
     chown ${uid}:${gid} -R /home/developer
 
+RUN chmod 777 /terra_ros2
 USER developer
+RUN sudo chown -R developer:developer /terra_ros2
 RUN sudo usermod -a -G video developer
 ENV HOME /home/developer
 
