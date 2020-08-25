@@ -92,8 +92,7 @@ RUN export uid=1000 gid=1000 && \
     chown ${uid}:${gid} -R /home/developer
 
 USER developer
+RUN sudo usermod -a -G video developer
 ENV HOME /home/developer
-
-
 
 CMD ["bash"]

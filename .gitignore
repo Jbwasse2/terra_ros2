@@ -1,4 +1,6 @@
 # Byte-compiled / optimized / DLL files
+run_docker.sh
+run_docker_gpu.sh
 *.bag
 __pycache__/
 *.py[cod]
