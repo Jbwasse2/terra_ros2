@@ -1,13 +1,12 @@
 import os
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pudb
-
-import cv2
 import rclpy
 from cv_bridge import CvBridge, CvBridgeError
-from geometry_msgs.msg import Point32
+from geometry_msgs.msg import Point32, Twist, Vector3
 from rclpy.node import Node
 from rmp_nav.common.utils import (get_gibson_asset_dir, get_project_root,
                                   pprint_dict, str_to_dict)
@@ -19,13 +18,15 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 class WaypointPublisher(Node):
 
-    def __init__(self):
+    def __init__(self, create_graphic=False):
         super().__init__('waypoint_publisher')
+        self.create_graphic = create_graphic
         self.model = self.get_model()
-        self.subscription = self.create_subscription(Image, 'camera', self.image_callback, 1)
-        self.publisher_ = self.create_publisher(Point32, 'waypoint', 1)
+        self.subscription = self.create_subscription(Image, 'camera', self.image_callback, 100)
+        self.publisher_ = self.create_publisher(Twist, 'terra_command_twist', 100)
         self.bridge = CvBridge()
         self.set_goal()
+        self.get_logger().info('Created Waypoint Node')
 
     def get_model(self):
         model = model_factory.get("model_12env_v2_future_pair_proximity_z0228")(
@@ -45,11 +46,19 @@ class WaypointPublisher(Node):
         self.goal_show = cv2.cvtColor(self.goal[0], cv2.COLOR_RGB2BGR)
 
     def create_waypoint_message(self, waypoint, reachability_estimator):
-        msg = Point32()
+        lin = Vector3()
+        angular = Vector3()
         #item converts from numpy float type to python float type
-        msg.x = waypoint[0].item()
-        msg.y = waypoint[1].item()
-        msg.z = reachability_estimator.item()
+        lin.x = float(waypoint[0].item()) / 4
+        lin.y = float(waypoint[1].item()) / 4
+        #msg.z = reachability_estimator.item()
+        lin.z = 0.0
+        angular.x = 0.0
+        angular.y = 0.0
+        angular.z = 0.0
+        msg = Twist()
+        msg.linear = lin
+        msg.angular = angular
         return msg
 
     def image_callback(self, msg):
@@ -61,17 +70,18 @@ class WaypointPublisher(Node):
         msg = self.create_waypoint_message(waypoint, reachability_estimator)
         self.publisher_.publish(msg)
         #The arrow is strictly for visualization, not used for navigation
-        arrow_start = (32,20)
-        arrow_end = (32 + int(10 * -waypoint[1]), 20 + int(10 * -waypoint[0]))
-        color = (0, 0, 255) #Red
-        thickness = 1
-        image = np.hstack((image, self.goal_show))
-        image = cv2.arrowedLine(image, arrow_start, arrow_end, color, thickness)
-        cv2.imshow('frame', image)
+        if self.create_graphic:
+            arrow_start = (32,20)
+            arrow_end = (32 + int(10 * -waypoint[1]), 20 + int(10 * -waypoint[0]))
+            color = (0, 0, 255) #Red
+            thickness = 1
+            image = np.hstack((image, self.goal_show))
+            image = cv2.arrowedLine(image, arrow_start, arrow_end, color, thickness)
+            cv2.imshow('frame', image)
 
-        key = cv2.waitKey(1)
-        if key == ord('q'):
-            self.__del__()
+            key = cv2.waitKey(1)
+            if key == ord('q'):
+                self.__del__()
 
     def get_wp(self, ob, goal):
         agent = agent_factory.agents_dict[self.model["agent"]]()
@@ -111,7 +121,7 @@ class WaypointPublisher(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    waypoint_publisher = WaypointPublisher()
+    waypoint_publisher = WaypointPublisher(create_graphic=False)
 
     rclpy.spin(waypoint_publisher)
 
