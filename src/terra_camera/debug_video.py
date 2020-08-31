@@ -1,4 +1,5 @@
 #the purpose of this file/package is to be able to debug the camera feed to make sure it is outputting results as expected
+import cv2
 import numpy as np
 import pudb
 import rclpy
@@ -6,8 +7,6 @@ from cv_bridge import CvBridge, CvBridgeError
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
-
-import cv2
 
 
 class DebugCamera(Node):

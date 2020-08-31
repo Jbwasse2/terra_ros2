@@ -37,7 +37,7 @@ class WaypointPublisher(Node):
     def set_goal(self):
         self.goal = [
             cv2.resize(
-                cv2.cvtColor(cv2.imread("./data/last_frame.jpg"), cv2.COLOR_BGR2RGB),
+                cv2.cvtColor(cv2.imread("./data/last_framebk.jpg"), cv2.COLOR_BGR2RGB),
                 dsize=(64, 64),
                 interpolation=cv2.INTER_CUBIC,
             )
@@ -64,8 +64,7 @@ class WaypointPublisher(Node):
     def image_callback(self, msg):
         self.get_logger().info('I heard {0}'.format(str(msg.header)))
         image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        #The above converts the image to RGB, but we want it to stay BGR
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+        #The above converts the image to RGB
         waypoint, reachability_estimator = self.get_wp(image, self.goal)
         msg = self.create_waypoint_message(waypoint, reachability_estimator)
         self.publisher_.publish(msg)
@@ -75,8 +74,13 @@ class WaypointPublisher(Node):
             arrow_end = (32 + int(10 * -waypoint[1]), 20 + int(10 * -waypoint[0]))
             color = (0, 0, 255) #Red
             thickness = 1
+            #cv2 like BGR because they like eating glue
+            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             image = np.hstack((image, self.goal_show))
             image = cv2.arrowedLine(image, arrow_start, arrow_end, color, thickness)
+            (height, width, _) = image.shape
+            image = cv2.resize(image, dsize=(width * 10, height * 10), interpolation=cv2.INTER_CUBIC)
+
             cv2.imshow('frame', image)
 
             key = cv2.waitKey(1)
@@ -92,6 +96,12 @@ class WaypointPublisher(Node):
             follower.motion_policy.predict_waypoint(ob, goal),
             follower.sparsifier.predict_reachability(ob, goal),
         )
+
+    def show_img(self, img):
+        img = np.swapaxes(img, 0, 2)
+        img = np.swapaxes(img, 1, 0)
+        plt.imshow(img)
+        plt.show()
 
     #Cv2 gives images in BGR, and from 0-255
     #We want RGB and from 0-1
@@ -121,7 +131,7 @@ class WaypointPublisher(Node):
 def main(args=None):
     rclpy.init(args=args)
 
-    waypoint_publisher = WaypointPublisher(create_graphic=False)
+    waypoint_publisher = WaypointPublisher(create_graphic=True)
 
     rclpy.spin(waypoint_publisher)
 
