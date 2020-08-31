@@ -1,6 +1,7 @@
 import numpy as np
 import pudb
 import rclpy
+import pudb
 from cv_bridge import CvBridge, CvBridgeError
 from rclpy.node import Node
 from sensor_msgs.msg import Image
@@ -16,7 +17,7 @@ class CameraPublisher(Node):
         self.stream_video=stream_video
         self.cap = cv2.VideoCapture(camera_id)
         self.publisher_ = self.create_publisher(Image, 'camera', 100)
-        timer_frequency = 1 / 60
+        timer_frequency = 1 / 2
         self.timer = self.create_timer(timer_frequency, self.timer_callback)
         self.counter = 0
         self.bridge = CvBridge()
@@ -70,7 +71,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     #Video stream doesnt work when ssh into machine and then run docker. TODO
-    camera_publisher = CameraPublisher(camera_id=0, stream_video=False)
+    camera_publisher = CameraPublisher(camera_id=1, stream_video=False)
     rclpy.spin(camera_publisher)
 
     # Destroy the node explicitly
