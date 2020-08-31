@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import pudb
 import rclpy
@@ -6,6 +5,8 @@ from cv_bridge import CvBridge, CvBridgeError
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
+
+import cv2
 
 
 class CameraPublisher(Node):
@@ -35,6 +36,7 @@ class CameraPublisher(Node):
             cv2.waitKey(1)
         frame = cv2.resize(frame, dsize=(64,64), interpolation=cv2.INTER_CUBIC)
         frame = np.flipud(frame)
+        frame = np.fliplr(frame)
 
         msg.header = header
         msg.height = frame.shape[0]
