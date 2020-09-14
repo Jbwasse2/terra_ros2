@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import pudb
 
 import cv2
 import matplotlib.pyplot as plt
@@ -16,7 +17,7 @@ from rmp_nav.simulation import agent_factory, sim_renderer
 from sensor_msgs.msg import Image
 from topological_nav.reachability import model_factory
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 class WaypointPublisher(Node):
 
@@ -29,8 +30,8 @@ class WaypointPublisher(Node):
 
         self.create_graphic = create_graphic
         self.model = self.get_model()
-        self.subscription = self.create_subscription(Image, 'camera', self.image_callback, 100)
-        self.publisher_ = self.create_publisher(Twist, 'terra_command_twist', 100)
+        self.subscription = self.create_subscription(Image, 'camera', self.image_callback, 1)
+        self.publisher_ = self.create_publisher(Twist, 'terra_command_twist', 1)
         self.bridge = CvBridge()
         self.set_goal()
         self.get_logger().info('Created Waypoint Node')
@@ -42,15 +43,27 @@ class WaypointPublisher(Node):
         return model
 
     def set_goal(self):
-        self.goal = [
-            cv2.resize(
-                cv2.cvtColor(cv2.imread("./data/last_frame.jpg"), cv2.COLOR_BGR2RGB),
+        def get_img(name):
+            a = cv2.resize(
+                cv2.cvtColor(cv2.imread(name), cv2.COLOR_BGR2RGB),
                 dsize=(64, 64),
-                interpolation=cv2.INTER_CUBIC,
-            )
-            for i in range(11)
-        ]
-        self.goal_show = cv2.cvtColor(self.goal[0], cv2.COLOR_RGB2BGR)
+                interpolation=cv2.INTER_CUBIC)
+            return a
+
+        self.goal = []
+
+        self.goal.append(get_img('./data/20200914_083340.jpg'))
+        self.goal.append(get_img('./data/20200914_083342.jpg'))
+        self.goal.append(get_img('./data/20200914_083344.jpg'))
+        self.goal.append(get_img('./data/20200914_083346.jpg'))
+        self.goal.append(get_img('./data/20200914_083347.jpg'))
+        self.goal.append(get_img('./data/20200914_083348.jpg'))
+        self.goal.append(get_img('./data/20200914_083350.jpg'))
+        self.goal.append(get_img('./data/20200914_083351.jpg'))
+        self.goal.append(get_img('./data/20200914_083353.jpg'))
+        self.goal.append(get_img('./data/20200914_083354.jpg'))
+        self.goal.append(get_img('./data/20200914_083356.jpg'))
+        self.goal_show = cv2.cvtColor(self.goal[6], cv2.COLOR_RGB2BGR)
 
     def create_waypoint_message(self, waypoint, reachability_estimator):
         lin = Vector3()
