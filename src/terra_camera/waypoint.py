@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import pudb
+
 import rclpy
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point32, Twist, Vector3
@@ -20,6 +22,11 @@ class WaypointPublisher(Node):
 
     def __init__(self, create_graphic=False):
         super().__init__('waypoint_publisher')
+        #If output file doesn't exist create it for iamges to be saved to instead of displayed.
+        if create_graphic:
+            Path("./output").mkdir(parents=True, exist_ok=True)
+            self.counter = 0
+
         self.create_graphic = create_graphic
         self.model = self.get_model()
         self.subscription = self.create_subscription(Image, 'camera', self.image_callback, 100)
@@ -37,7 +44,7 @@ class WaypointPublisher(Node):
     def set_goal(self):
         self.goal = [
             cv2.resize(
-                cv2.cvtColor(cv2.imread("./data/last_framebk.jpg"), cv2.COLOR_BGR2RGB),
+                cv2.cvtColor(cv2.imread("./data/last_frame.jpg"), cv2.COLOR_BGR2RGB),
                 dsize=(64, 64),
                 interpolation=cv2.INTER_CUBIC,
             )
@@ -50,12 +57,12 @@ class WaypointPublisher(Node):
         angular = Vector3()
         #item converts from numpy float type to python float type
         lin.x = float(waypoint[0].item()) / 4
-        lin.y = float(waypoint[1].item()) / 4
+        lin.y = 0.0
         #msg.z = reachability_estimator.item()
         lin.z = 0.0
         angular.x = 0.0
         angular.y = 0.0
-        angular.z = 0.0
+        angular.z = float(waypoint[1].item()) / 4
         msg = Twist()
         msg.linear = lin
         msg.angular = angular
@@ -64,7 +71,9 @@ class WaypointPublisher(Node):
     def image_callback(self, msg):
         self.get_logger().info('I heard {0}'.format(str(msg.header)))
         image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         #The above converts the image to RGB
+        print(image.shape)
         waypoint, reachability_estimator = self.get_wp(image, self.goal)
         msg = self.create_waypoint_message(waypoint, reachability_estimator)
         self.publisher_.publish(msg)
@@ -73,19 +82,18 @@ class WaypointPublisher(Node):
             arrow_start = (32,20)
             arrow_end = (32 + int(10 * -waypoint[1]), 20 + int(10 * -waypoint[0]))
             color = (0, 0, 255) #Red
-            thickness = 1
+            thickness = 2
             #cv2 like BGR because they like eating glue
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
             image = np.hstack((image, self.goal_show))
             image = cv2.arrowedLine(image, arrow_start, arrow_end, color, thickness)
             (height, width, _) = image.shape
-            image = cv2.resize(image, dsize=(width * 10, height * 10), interpolation=cv2.INTER_CUBIC)
+#            image = cv2.resize(image, dsize=(width * 10, height * 10), interpolation=cv2.INTER_CUBIC)
+            #Add 0's to front to make it easier for script to make into video, counter should not be larger than 6 digits (IE 999999)
+            counter_string = str(self.counter).rjust(6, '0')
+            cv2.imwrite('./output/frame' + counter_string + '.png', image)
+            self.counter += 1
 
-            cv2.imshow('frame', image)
-
-            key = cv2.waitKey(1)
-            if key == ord('q'):
-                self.__del__()
 
     def get_wp(self, ob, goal):
         agent = agent_factory.agents_dict[self.model["agent"]]()
@@ -113,11 +121,13 @@ class WaypointPublisher(Node):
             im = np.swapaxes(im, 0, 2)
             im = np.swapaxes(im, 1, 2)
             im = np.asarray(im)
+#            self.show_img(im)
             im = (im / 255).astype("float32")
         else:
             im = np.swapaxes(im, 1, 3)
             im = np.swapaxes(im, 2, 3)
             im = np.asarray(im)
+#            self.show_img(im[0])
             im = (im / 255).astype("float32")
         return im
 
