@@ -21,13 +21,17 @@ class TerraComm(Node):
         self.port  = port
         self.socket = self.create_socket()
         self.subscription = self.create_subscription(Twist, 'terra_command_twist', self.twist_callback, 1)
+
     def twist_callback(self, msg):
         assert isinstance(msg, Twist)
         linear = msg.linear
         angular = msg.angular
         self.get_logger().info('[TerraComm: Twist] Linear: {0},{1},{2} Angular: {3},{4},{5}'.format(str(linear.x),str(linear.y), str(linear.z), str(angular.x), str(angular.y), str(angular.z)))
         terra_msg = self.create_terrasentia_message(linear, angular)
-        self.socket.sendall(bytes(terra_msg, 'utf-8'))
+        try:
+            self.socket.sendall(bytes(terra_msg, 'utf-8'))
+        except Exception as e:
+            self.get_logger().error('[TerraCommDummy] Dropped ' + str(terra_msg)+ ' Error:' + str(e))
 
     def create_socket(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

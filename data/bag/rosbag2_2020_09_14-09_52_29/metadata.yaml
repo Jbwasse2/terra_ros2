@@ -1,0 +1,26 @@
+rosbag2_bagfile_information:
+  version: 1
+  storage_identifier: sqlite3
+  relative_file_paths:
+    - rosbag2_2020_09_14-09_52_29.db3
+  duration:
+    nanoseconds: 47627600919
+  starting_time:
+    nanoseconds_since_epoch: 1600095150063392303
+  message_count: 7118
+  topics_with_message_count:
+    - topic_metadata:
+        name: /camera
+        type: sensor_msgs/msg/Image
+        serialization_format: cdr
+      message_count: 1428
+    - topic_metadata:
+        name: /rosout
+        type: rcl_interfaces/msg/Log
+        serialization_format: cdr
+      message_count: 4274
+    - topic_metadata:
+        name: /terra_command_twist
+        type: geometry_msgs/msg/Twist
+        serialization_format: cdr
+      message_count: 1416
