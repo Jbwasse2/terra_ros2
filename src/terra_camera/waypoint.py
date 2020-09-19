@@ -1,20 +1,20 @@
 import os
 from pathlib import Path
-import pudb
 
-import cv2
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import pudb
-
 import rclpy
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point32, Twist, Vector3
 from rclpy.node import Node
+from sensor_msgs.msg import Image
+
+import cv2
 from rmp_nav.common.utils import (get_gibson_asset_dir, get_project_root,
                                   pprint_dict, str_to_dict)
 from rmp_nav.simulation import agent_factory, sim_renderer
-from sensor_msgs.msg import Image
 from topological_nav.reachability import model_factory
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
@@ -38,7 +38,8 @@ class WaypointPublisher(Node):
 
     def get_model(self):
         model = model_factory.get("model_12env_v2_future_pair_proximity_z0228")(
-            device="cuda"
+            device="cpu"
+            #device="cuda"
         )
         return model
 
@@ -86,7 +87,6 @@ class WaypointPublisher(Node):
         image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         #The above converts the image to RGB
-        print(image.shape)
         waypoint, reachability_estimator = self.get_wp(image, self.goal)
         msg = self.create_waypoint_message(waypoint, reachability_estimator)
         self.publisher_.publish(msg)
@@ -119,6 +119,7 @@ class WaypointPublisher(Node):
         )
 
     def show_img(self, img):
+        matplotlib.use('TkAgg') 
         img = np.swapaxes(img, 0, 2)
         img = np.swapaxes(img, 1, 0)
         plt.imshow(img)
