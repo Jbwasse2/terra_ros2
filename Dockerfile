@@ -43,6 +43,7 @@ RUN . /opt/ros/$ROS_DISTRO/setup.sh \
     && rm -rf /var/lib/apt/lists/*
 
 
+
 # set up environment
 ENV NDDSHOME /opt/rti.com/rti_connext_dds-5.3.1
 ENV PATH "$NDDSHOME/bin":$PATH
@@ -54,6 +55,7 @@ RUN apt-get -y install ros-dashing-vision-opencv
 RUN apt-get -y install vim
 RUN apt-get -y install libcairo2-dev
 RUN apt-get -y install python3-pip
+RUN apt-get -y install python3-tk
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt --ignore-installed
 RUN pip3 install torch==1.3.1 torchvision==0.4.2+cu92 -f https://download.pytorch.org/whl/torch_stable.html
@@ -64,6 +66,7 @@ RUN pip install Cython
 RUN pip3 install Cython
 RUN apt-get -y install python3-pybind11
 RUN apt-get -y install python-pybind11
+
 
 #Handle rmp_nav stuff
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
@@ -96,5 +99,8 @@ USER developer
 RUN sudo chown -R developer:developer /terra_ros2
 RUN sudo usermod -a -G video developer
 ENV HOME /home/developer
+
+RUN mkdir -p /home/developer/.config/pudb/
+COPY pudb.cfg /home/developer/.config/pudb/
 
 CMD ["bash"]
