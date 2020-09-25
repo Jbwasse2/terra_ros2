@@ -56,13 +56,13 @@ class WaypointPublisher(Node):
         lin = Vector3()
         angular = Vector3()
         #item converts from numpy float type to python float type
-        lin.x = float(waypoint[0].item()) / 4
+        lin.x = float(waypoint[0].item()) / 1
         lin.y = 0.0
         #msg.z = reachability_estimator.item()
         lin.z = 0.0
         angular.x = 0.0
         angular.y = 0.0
-        angular.z = float(waypoint[1].item()) / 4
+        angular.z = float(waypoint[1].item()) / 1
         msg = Twist()
         msg.linear = lin
         msg.angular = angular
