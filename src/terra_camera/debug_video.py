@@ -1,7 +1,8 @@
 #the purpose of this file/package is to be able to debug the camera feed to make sure it is outputting results as expected
-import cv2
 import numpy as np
 import pudb
+
+import cv2
 import rclpy
 from cv_bridge import CvBridge, CvBridgeError
 from rclpy.node import Node
@@ -14,20 +15,17 @@ class DebugCamera(Node):
         super().__init__('DebugCamera')
         self.subscription = self.create_subscription(Image, 'camera', self.image_callback, 100)
         self.bridge = CvBridge()
+        self.counter = 0
 
     def image_callback(self, msg):
         self.get_logger().info('I heard {0}'.format(str(msg.header)))
-        self.get_logger().info('This is an upscaled image, the original is 64x64')
         image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         #The above converts the image to RGB, but we want it to stay BGR
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-        image = cv2.resize(image, dsize=(500,500), interpolation=cv2.INTER_CUBIC)
-        image = np.fliplr(image)
+#        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         #The arrow is strictly for visualization, not used for navigation
-        cv2.imshow('frame', image)
-        key = cv2.waitKey(1)
-        if key == ord('q'):
-            self.__del__()
+        counter_string = str(self.counter).rjust(5,'0')
+        cv2.imwrite('./data/trajectory/' + counter_string + '.png', image)
+        self.counter += 1 
 
 def main(args=None):
     rclpy.init(args=args)
