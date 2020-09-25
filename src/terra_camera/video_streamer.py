@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import pudb
 
@@ -21,6 +22,9 @@ class VideoPublisher(Node):
         self.timer = self.create_timer(timer_frequency, self.timer_callback)
         self.counter = 0
         self.bridge = CvBridge()
+        #For debugging images
+        import matplotlib as mpl
+        mpl.use('TkAgg')
 
     def timer_callback(self):
         video_length = self.trajectory.shape[0]
@@ -41,7 +45,7 @@ class VideoPublisher(Node):
         self.counter += 1
 
     def get_video_trajectory(self):
-        cap = cv2.VideoCapture("./data/20200710_093518.mp4")
+        cap = cv2.VideoCapture("./data/make_video/out.mp4")
         if cap.isOpened() == False:
             IOError("Error opening video stream or file")
 

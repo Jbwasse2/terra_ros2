@@ -1,13 +1,13 @@
 import matplotlib
 import numpy as np
 import pudb
+
+import cv2
 import rclpy
 from cv_bridge import CvBridge, CvBridgeError
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Header
-
-import cv2
 from terra_camera.waypoint import WaypointPublisher
 from topological_nav.reachability import model_factory
 from topological_nav.reachability.planning import NavGraph, NavGraphSPTM
@@ -92,17 +92,17 @@ class GoalPublisher(WaypointPublisher):
 
         self.final_goal = []
 
-        self.final_goal.append(get_img('./data/13000.png'))
-        self.final_goal.append(get_img('./data/13010.png'))
-        self.final_goal.append(get_img('./data/13020.png'))
-        self.final_goal.append(get_img('./data/13030.png'))
-        self.final_goal.append(get_img('./data/13040.png'))
-        self.final_goal.append(get_img('./data/13050.png'))
-        self.final_goal.append(get_img('./data/13060.png'))
-        self.final_goal.append(get_img('./data/13070.png'))
-        self.final_goal.append(get_img('./data/13080.png'))
-        self.final_goal.append(get_img('./data/13090.png'))
-        self.final_goal.append(get_img('./data/13100.png'))
+        self.final_goal.append(get_img('./data/frame05700.png'))
+        self.final_goal.append(get_img('./data/frame05710.png'))
+        self.final_goal.append(get_img('./data/frame05720.png'))
+        self.final_goal.append(get_img('./data/frame05730.png'))
+        self.final_goal.append(get_img('./data/frame05740.png'))
+        self.final_goal.append(get_img('./data/frame05750.png'))
+        self.final_goal.append(get_img('./data/frame05760.png'))
+        self.final_goal.append(get_img('./data/frame05770.png'))
+        self.final_goal.append(get_img('./data/frame05780.png'))
+        self.final_goal.append(get_img('./data/frame05790.png'))
+        self.final_goal.append(get_img('./data/frame05800.png'))
 
     def update_local_goal(self):
         for i in range(len(self.path)):
@@ -123,13 +123,13 @@ class GoalPublisher(WaypointPublisher):
                     self.show_img(node[1]['dst_repr'])
 
     def image_callback(self, msg):
-        image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         #Update planning path every few calls to this.
         if self.counter % self.replan_every_n_frames == 0:
+            print("Ya Im running")
+            image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
             matplotlib.image.imsave('./data/out/frameStart.png', image)
             matplotlib.image.imsave('./data/out/frameEnd.png', self.final_goal[5])
-           # self.path = [(0, 13426), (0, 13439), (0, 13446), (0, 13452), (0, 13455), (0, 13456), (0, 13457), (0, 13458), (0, 13459), (0, 13460), (0, 13461), (0, 13462), (0, 13463), (0, 13464), (0, 13465), (0, 13468), (0, 13475), (0, 13500)]
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             self.path = self.find_path(image)
             self.update_local_goal()
         self.counter += 1
@@ -138,11 +138,11 @@ class GoalPublisher(WaypointPublisher):
         ob = self.cv2_to_model_im(ob)
         goal = self.cv2_to_model_im(self.final_goal[5])
         dst_repr = self.model['sparsifier'].get_dst_repr_single(goal)
-
-        pu.db
-        path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.3, allow_subgraph=True)
+        path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.7, allow_subgraph=True)
         if path is None:
             self.get_logger().warning("[camera.py:GoalPublisher] No path found!")
+        self.get_logger().debug("[camera.py:GoalPublisher] Log Likelihood: " + str(log_likelihood))
+        pu.db
         return path
 
 
