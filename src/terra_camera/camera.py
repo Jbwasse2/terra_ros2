@@ -1,8 +1,7 @@
+import cv2
 import matplotlib
 import numpy as np
 import pudb
-
-import cv2
 import rclpy
 from cv_bridge import CvBridge, CvBridgeError
 from rclpy.node import Node
@@ -65,6 +64,7 @@ class GoalPublisher(WaypointPublisher):
         self.replan_every_n_frames = 99999999999999999
         self.topological_map = self.get_topological_map()
         self.set_final_goal()
+        self.get_logger().info("Finished Building GoalPublisher")
 
     def get_topological_map(self):
         sparsify_thres = 0.99
@@ -127,6 +127,7 @@ class GoalPublisher(WaypointPublisher):
         if self.counter % self.replan_every_n_frames == 0:
             print("Ya Im running")
             image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             matplotlib.image.imsave('./data/out/frameStart.png', image)
             matplotlib.image.imsave('./data/out/frameEnd.png', self.final_goal[5])
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -138,11 +139,11 @@ class GoalPublisher(WaypointPublisher):
         ob = self.cv2_to_model_im(ob)
         goal = self.cv2_to_model_im(self.final_goal[5])
         dst_repr = self.model['sparsifier'].get_dst_repr_single(goal)
-        path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.7, allow_subgraph=True)
+        path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.0, allow_subgraph=True)
         if path is None:
             self.get_logger().warning("[camera.py:GoalPublisher] No path found!")
-        self.get_logger().debug("[camera.py:GoalPublisher] Log Likelihood: " + str(log_likelihood))
-        pu.db
+            pu.db
+        self.get_logger().info("[camera.py:GoalPublisher] Log Likelihood: " + str(log_likelihood))
         return path
 
 

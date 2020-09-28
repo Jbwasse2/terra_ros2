@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import cv2
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,15 +10,13 @@ import rclpy
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point32, Twist, Vector3
 from rclpy.node import Node
-from sensor_msgs.msg import Image
-
-import cv2
 from rmp_nav.common.utils import (get_gibson_asset_dir, get_project_root,
                                   pprint_dict, str_to_dict)
 from rmp_nav.simulation import agent_factory, sim_renderer
+from sensor_msgs.msg import Image
 from topological_nav.reachability import model_factory
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 class WaypointPublisher(Node):
 
@@ -38,8 +37,7 @@ class WaypointPublisher(Node):
 
     def get_model(self):
         model = model_factory.get("model_12env_v2_future_pair_proximity_z0228")(
-            device="cpu"
-            #device="cuda"
+            device="cuda"
         )
         return model
 
