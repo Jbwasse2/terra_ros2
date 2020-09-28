@@ -178,7 +178,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     #Video stream doesnt work when ssh into machine and then run docker. TODO
-    camera_publisher = CameraPublisher(camera_id=0, stream_video=False)
+    camera_publisher = CameraPublisher(camera_id=1, stream_video=False)
     rclpy.spin(camera_publisher)
 
     # Destroy the node explicitly
