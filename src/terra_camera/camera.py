@@ -1,5 +1,6 @@
 import cv2
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pudb
 import rclpy
@@ -104,11 +105,11 @@ class GoalPublisher(WaypointPublisher):
         self.final_goal.append(get_img('./data/frame05790.png'))
         self.final_goal.append(get_img('./data/frame05800.png'))
 
-    def update_local_goal(self):
+    def save_trajectory(self):
         for i in range(len(self.path)):
             self.display_node(self.path[i], save_name='./data/out/frame' + str(i).zfill(4) + '.png')
 
-    #Used for debugging, takes in node such as (0,13426) and displays corresponding image.
+    # takes in node such as (0,13426) and saves/returns corresponding image
     def display_node(self, node_id, save_name=None):
         nodes = list(self.topological_map.graph.nodes.items())
         for node in nodes:
@@ -119,20 +120,45 @@ class GoalPublisher(WaypointPublisher):
                     img = np.swapaxes(img, 1, 0)
                     matplotlib.image.imsave(save_name, img)
                 else:
-                    self.show_img(node[1]['ob_repr'])
-                    self.show_img(node[1]['dst_repr'])
+                    img = node[1]['ob_repr']
+                    img = np.swapaxes(img, 0, 2)
+                    img = np.swapaxes(img, 1, 0)
+                    return img
+
+    def send_trajectory_images(self):
+        msg = Image()
+        header = Header()
+        header.frame_id = str(self.counter)
+        header.stamp = self.get_clock().now().to_msg()
+
+        images = []
+        for path in self.path:
+            images.append(self.display_node(path))
+        matplotlib.use('TkAgg') 
+        frame = np.vstack(images)
+        frame = frame * 255
+
+        msg.header = header
+        msg.height = frame.shape[0]
+        msg.width = frame.shape[1]
+        msg.encoding = "rgb8"
+        value = self.bridge.cv2_to_imgmsg(frame.astype(np.uint8))
+        msg.data = value.data
+        self.publisher_.publish(msg)
+        self.get_logger().info('[Goal Publisher] Publishing Trajectory')
 
     def image_callback(self, msg):
         #Update planning path every few calls to this.
         if self.counter % self.replan_every_n_frames == 0:
-            print("Ya Im running")
+            self.get_logger().info("[camera.py:GoalPublisher] Getting Trajectory Path")
             image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             matplotlib.image.imsave('./data/out/frameStart.png', image)
             matplotlib.image.imsave('./data/out/frameEnd.png', self.final_goal[5])
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             self.path = self.find_path(image)
-            self.update_local_goal()
+            self.send_trajectory_images()
+            self.save_trajectory()
         self.counter += 1
 
     def find_path(self, ob):

@@ -16,7 +16,8 @@ from rmp_nav.simulation import agent_factory, sim_renderer
 from sensor_msgs.msg import Image
 from topological_nav.reachability import model_factory
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+matplotlib.use('TkAgg') 
 
 class WaypointPublisher(Node):
 
@@ -31,9 +32,13 @@ class WaypointPublisher(Node):
         self.model = self.get_model()
         self.subscription = self.create_subscription(Image, 'camera', self.image_callback, 1)
         self.publisher_ = self.create_publisher(Twist, 'terra_command_twist', 1)
+        self.subscription = self.create_subscription(Image, 'goal', self.goal_callback, 1)
         self.bridge = CvBridge()
-        self.set_goal()
         self.get_logger().info('Created Waypoint Node')
+        self.goal = None
+        self.goal_show = None
+        self.path_index = 0
+        self.trajectories = []
 
     def get_model(self):
         model = model_factory.get("model_12env_v2_future_pair_proximity_z0228")(
@@ -41,6 +46,27 @@ class WaypointPublisher(Node):
         )
         return model
 
+    def goal_callback(self, msg):
+        #This callback takes a collection of images sent from the GoalPublisher that it beleives is the trajectory the robot should follow
+        #The received image should be stacked images ie if there are 20 64x64 images, then the resulting image should be 1280x64.
+        self.get_logger().info('[waypoint.py] Trajectory Images Found!')
+        image = self.bridge.imgmsg_to_cv2(msg, "rgb8")
+        image = image / 255
+        IMAGE_HEIGHT = 64
+        number_of_images = int(msg.height / IMAGE_HEIGHT)
+        for i in range(number_of_images):
+            self.trajectories.append(image[IMAGE_HEIGHT*i:IMAGE_HEIGHT*(i+1), :])
+        self.path_index = 5
+        self.update_goal()
+
+    def update_goal(self):
+        #Get 11 images centered around path_index
+        self.goal = []
+        for i in range(self.path_index-5, self.path_index+6):
+            self.goal.append(self.trajectories[i])
+
+
+    #No longer used, goal images are sent from the GoalPublisher
     def set_goal(self):
         def get_img(name):
             a = cv2.resize(
@@ -68,13 +94,13 @@ class WaypointPublisher(Node):
         lin = Vector3()
         angular = Vector3()
         #item converts from numpy float type to python float type
-        lin.x = float(waypoint[0].item()) / 4
+        lin.x = float(waypoint[0].item()) / 8
         lin.y = 0.0
         #msg.z = reachability_estimator.item()
         lin.z = 0.0
         angular.x = 0.0
         angular.y = 0.0
-        angular.z = float(waypoint[1].item()) / 4
+        angular.z = float(waypoint[1].item()) / 8
         msg = Twist()
         msg.linear = lin
         msg.angular = angular
@@ -85,7 +111,14 @@ class WaypointPublisher(Node):
         image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         #The above converts the image to RGB
+        if self.goal is None:
+            self.get_logger().info("[waypoint.py] No goal image, waiting for planner to finish")
+            return
         waypoint, reachability_estimator = self.get_wp(image, self.goal)
+        self.get_logger().info("Reachability Estimator is {0}".format(str(reachability_estimator)))
+        if reachability_estimator >= 0.95:
+            self.path_index += 1
+            self.update_goal()
         msg = self.create_waypoint_message(waypoint, reachability_estimator)
         self.publisher_.publish(msg)
         #The arrow is strictly for visualization, not used for navigation
