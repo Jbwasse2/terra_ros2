@@ -64,6 +64,8 @@ class WaypointPublisher(Node):
         self.goal = []
         for i in range(self.path_index-5, self.path_index+6):
             self.goal.append(self.trajectories[i])
+        self.goal_show = (255*self.goal[5]).astype(np.uint8)
+        self.goal_show = cv2.cvtColor(self.goal_show, cv2.COLOR_RGB2BGR)
 
 
     #No longer used, goal images are sent from the GoalPublisher
@@ -94,13 +96,13 @@ class WaypointPublisher(Node):
         lin = Vector3()
         angular = Vector3()
         #item converts from numpy float type to python float type
-        lin.x = float(waypoint[0].item()) / 8
+        lin.x = float(waypoint[0].item()) / 4
         lin.y = 0.0
         #msg.z = reachability_estimator.item()
         lin.z = 0.0
         angular.x = 0.0
         angular.y = 0.0
-        angular.z = float(waypoint[1].item()) / 8
+        angular.z = float(waypoint[1].item()) / 4
         msg = Twist()
         msg.linear = lin
         msg.angular = angular
@@ -109,12 +111,13 @@ class WaypointPublisher(Node):
     def image_callback(self, msg):
         self.get_logger().info('I heard {0}'.format(str(msg.header)))
         image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         #The above converts the image to RGB
         if self.goal is None:
             self.get_logger().info("[waypoint.py] No goal image, waiting for planner to finish")
             return
-        waypoint, reachability_estimator = self.get_wp(image, self.goal)
+        pu.db
+        waypoint, reachability_estimator = self.get_wp(image/255, self.goal)
         self.get_logger().info("Reachability Estimator is {0}".format(str(reachability_estimator)))
         if reachability_estimator >= 0.95:
             self.path_index += 1
