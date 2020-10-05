@@ -13,6 +13,7 @@ from topological_nav.reachability import model_factory
 from topological_nav.reachability.planning import NavGraph, NavGraphSPTM
 
 
+matplotlib.use('TkAgg') 
 class CameraPublisher(Node):
     def __init__(self, camera_id=1, stream_video=False):
         super().__init__('camera_publisher')
@@ -73,7 +74,7 @@ class GoalPublisher(WaypointPublisher):
              self.model["sparsifier"],
              self.model["motion_policy"],
              sparsify_thres,
-             "./data/aesb/graph.pickle",
+             "./data/aesb/fresh.pickle",
          )
         return nav_graph
 
@@ -85,29 +86,49 @@ class GoalPublisher(WaypointPublisher):
         
     def set_final_goal(self):
         def get_img(name):
+             #   cv2.cvtColor(cv2.imread(name), cv2.COLOR_BGR2RGB),
             a = cv2.resize(
-                cv2.cvtColor(cv2.imread(name), cv2.COLOR_BGR2RGB),
+                cv2.imread(name),
                 dsize=(64, 64),
                 interpolation=cv2.INTER_CUBIC)
             return a
 
         self.final_goal = []
 
-        self.final_goal.append(get_img('./data/frame05700.png'))
-        self.final_goal.append(get_img('./data/frame05710.png'))
-        self.final_goal.append(get_img('./data/frame05720.png'))
-        self.final_goal.append(get_img('./data/frame05730.png'))
-        self.final_goal.append(get_img('./data/frame05740.png'))
-        self.final_goal.append(get_img('./data/frame05750.png'))
-        self.final_goal.append(get_img('./data/frame05760.png'))
-        self.final_goal.append(get_img('./data/frame05770.png'))
-        self.final_goal.append(get_img('./data/frame05780.png'))
-        self.final_goal.append(get_img('./data/frame05790.png'))
-        self.final_goal.append(get_img('./data/frame05800.png'))
+        self.final_goal.append(get_img('./data/nodeDST_000_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_001_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_002_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_003_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_004_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_005_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_006_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_007_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_008_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_009_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_010_00549.png'))
 
     def save_trajectory(self):
         for i in range(len(self.path)):
             self.display_node(self.path[i], save_name='./data/out/frame' + str(i).zfill(4) + '.png')
+
+    def get_images_in_graph(self):
+        nodes = list(self.topological_map.graph.nodes.items())
+        for counter, node in enumerate(nodes):
+            img = node[1]['ob_repr']
+            img = np.swapaxes(img, 0, 2)
+            img = np.swapaxes(img, 1, 0)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            save_name = './data/out/nodeOB' + str(counter).zfill(5) + '.png'
+            cv2.imwrite(save_name, img*255)
+            imgdst = node[1]['dst_repr']
+            for i in range(len(imgdst)):
+                img = imgdst[i]
+                img = np.swapaxes(img, 0, 2)
+                img = np.swapaxes(img, 1, 0)
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                save_name = './data/out/nodeDST_' +str(i).zfill(3) + '_' + str(counter).zfill(5) + '.png'
+                cv2.imwrite(save_name, img*255)
+
 
     # takes in node such as (0,13426) and saves/returns corresponding image
     def display_node(self, node_id, save_name=None):
@@ -118,7 +139,8 @@ class GoalPublisher(WaypointPublisher):
                     img = node[1]['ob_repr']
                     img = np.swapaxes(img, 0, 2)
                     img = np.swapaxes(img, 1, 0)
-                    matplotlib.image.imsave(save_name, img)
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    cv2.imwrite(save_name, img*255)
                 else:
                     img = node[1]['ob_repr']
                     img = np.swapaxes(img, 0, 2)
@@ -134,7 +156,6 @@ class GoalPublisher(WaypointPublisher):
         images = []
         for path in self.path:
             images.append(self.display_node(path))
-        matplotlib.use('TkAgg') 
         frame = np.vstack(images)
         frame = frame * 255
 
@@ -152,23 +173,25 @@ class GoalPublisher(WaypointPublisher):
         if self.counter % self.replan_every_n_frames == 0:
             self.get_logger().info("[camera.py:GoalPublisher] Getting Trajectory Path")
             image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            matplotlib.image.imsave('./data/out/frameStart.png', image)
-            matplotlib.image.imsave('./data/out/frameEnd.png', self.final_goal[5])
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            #cv2.cvtColor(cv2.imread(name), cv2.COLOR_BGR2RGB),
+#            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             self.path = self.find_path(image)
             self.send_trajectory_images()
             self.save_trajectory()
         self.counter += 1
 
     def find_path(self, ob):
+        cv2.imwrite('./data/out/frameStart.png', ob)
+        cv2.imwrite('./data/out/frameEnd.png', self.final_goal[5])
         ob = self.cv2_to_model_im(ob)
         goal = self.cv2_to_model_im(self.final_goal[5])
         dst_repr = self.model['sparsifier'].get_dst_repr_single(goal)
-        path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.0, allow_subgraph=True)
+        path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.7, allow_subgraph=True)
         if path is None:
             self.get_logger().warning("[camera.py:GoalPublisher] No path found!")
-            pu.db
+        if len(path) < 11:
+            self.get_logger().warning("[camera.py:GoalPublisher] Short Path Found!")
         self.get_logger().info("[camera.py:GoalPublisher] Log Likelihood: " + str(log_likelihood))
         return path
 

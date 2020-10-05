@@ -16,7 +16,7 @@ from rmp_nav.simulation import agent_factory, sim_renderer
 from sensor_msgs.msg import Image
 from topological_nav.reachability import model_factory
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 matplotlib.use('TkAgg') 
 
 class WaypointPublisher(Node):
@@ -61,6 +61,7 @@ class WaypointPublisher(Node):
 
     def update_goal(self):
         #Get 11 images centered around path_index
+        pu.db
         self.goal = []
         for i in range(self.path_index-5, self.path_index+6):
             self.goal.append(self.trajectories[i])
@@ -164,6 +165,7 @@ class WaypointPublisher(Node):
     #Can also get list/ np array of images, this should be handled
     def cv2_to_model_im(self,im):
         im = np.asarray(im)
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         assert len(im.shape) == 3 or len(im.shape) == 4
         if len(im.shape) == 3:
             im = np.swapaxes(im, 0, 2)
