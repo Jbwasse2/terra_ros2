@@ -1,5 +1,6 @@
 # Byte-compiled / optimized / DLL files
 *.tiff
+data/*
 run_docker.sh
 ./data/*
 data/*

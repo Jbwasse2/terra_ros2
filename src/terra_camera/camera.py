@@ -1,4 +1,5 @@
 import matplotlib
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 import pudb
@@ -14,7 +15,7 @@ from terra_camera.waypoint import WaypointPublisher
 from topological_nav.reachability import model_factory
 from topological_nav.reachability.planning import NavGraph, NavGraphSPTM
 
-
+matplotlib.use('TkAgg') 
 class CameraPublisher(Node):
     def __init__(self, camera_id=1, stream_video=False):
         super().__init__('camera_publisher')
@@ -67,6 +68,7 @@ class GoalPublisher(WaypointPublisher):
         self.replan_every_n_frames = 99999999999999999
         self.topological_map = self.get_topological_map()
         self.set_final_goal()
+        self.get_logger().info("Finished Building GoalPublisher")
 
     def get_topological_map(self):
         sparsify_thres = 0.99
@@ -74,7 +76,7 @@ class GoalPublisher(WaypointPublisher):
              self.model["sparsifier"],
              self.model["motion_policy"],
              sparsify_thres,
-             "./data/aesb/graph.pickle",
+             "./data/aesb/fresh.pickle",
          )
         return nav_graph
 
@@ -84,31 +86,51 @@ class GoalPublisher(WaypointPublisher):
         
     def set_final_goal(self):
         def get_img(name):
+             #   cv2.cvtColor(cv2.imread(name), cv2.COLOR_BGR2RGB),
             a = cv2.resize(
-                cv2.cvtColor(cv2.imread(name), cv2.COLOR_BGR2RGB),
+                cv2.imread(name),
                 dsize=(64, 64),
                 interpolation=cv2.INTER_CUBIC)
             return a
 
         self.final_goal = []
 
-        self.final_goal.append(get_img('./data/frame05700.png'))
-        self.final_goal.append(get_img('./data/frame05710.png'))
-        self.final_goal.append(get_img('./data/frame05720.png'))
-        self.final_goal.append(get_img('./data/frame05730.png'))
-        self.final_goal.append(get_img('./data/frame05740.png'))
-        self.final_goal.append(get_img('./data/frame05750.png'))
-        self.final_goal.append(get_img('./data/frame05760.png'))
-        self.final_goal.append(get_img('./data/frame05770.png'))
-        self.final_goal.append(get_img('./data/frame05780.png'))
-        self.final_goal.append(get_img('./data/frame05790.png'))
-        self.final_goal.append(get_img('./data/frame05800.png'))
+        self.final_goal.append(get_img('./data/nodeDST_000_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_001_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_002_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_003_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_004_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_005_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_006_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_007_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_008_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_009_00549.png'))
+        self.final_goal.append(get_img('./data/nodeDST_010_00549.png'))
 
-    def update_local_goal(self):
+    def save_trajectory(self):
         for i in range(len(self.path)):
             self.display_node(self.path[i], save_name='./data/out/frame' + str(i).zfill(4) + '.png')
 
-    #Used for debugging, takes in node such as (0,13426) and displays corresponding image.
+    def get_images_in_graph(self):
+        nodes = list(self.topological_map.graph.nodes.items())
+        for counter, node in enumerate(nodes):
+            img = node[1]['ob_repr']
+            img = np.swapaxes(img, 0, 2)
+            img = np.swapaxes(img, 1, 0)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+            save_name = './data/out/nodeOB' + str(counter).zfill(5) + '.png'
+            cv2.imwrite(save_name, img*255)
+            imgdst = node[1]['dst_repr']
+            for i in range(len(imgdst)):
+                img = imgdst[i]
+                img = np.swapaxes(img, 0, 2)
+                img = np.swapaxes(img, 1, 0)
+                img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                save_name = './data/out/nodeDST_' +str(i).zfill(3) + '_' + str(counter).zfill(5) + '.png'
+                cv2.imwrite(save_name, img*255)
+
+
+    # takes in node such as (0,13426) and saves/returns corresponding image
     def display_node(self, node_id, save_name=None):
         nodes = list(self.topological_map.graph.nodes.items())
         for node in nodes:
@@ -117,20 +139,46 @@ class GoalPublisher(WaypointPublisher):
                     img = node[1]['ob_repr']
                     img = np.swapaxes(img, 0, 2)
                     img = np.swapaxes(img, 1, 0)
-                    matplotlib.image.imsave(save_name, img)
+                    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+                    cv2.imwrite(save_name, img*255)
                 else:
-                    self.show_img(node[1]['ob_repr'])
-                    self.show_img(node[1]['dst_repr'])
+                    img = node[1]['ob_repr']
+                    img = np.swapaxes(img, 0, 2)
+                    img = np.swapaxes(img, 1, 0)
+                    return img
+
+    def send_trajectory_images(self):
+        msg = Image()
+        header = Header()
+        header.frame_id = str(self.counter)
+        header.stamp = self.get_clock().now().to_msg()
+
+        images = []
+        for path in self.path:
+            images.append(self.display_node(path))
+        frame = np.vstack(images)
+        frame = frame * 255
+
+        msg.header = header
+        msg.height = frame.shape[0]
+        msg.width = frame.shape[1]
+        msg.encoding = "rgb8"
+        value = self.bridge.cv2_to_imgmsg(frame.astype(np.uint8))
+        msg.data = value.data
+        self.publisher_.publish(msg)
+        self.get_logger().info('[Goal Publisher] Publishing Trajectory')
 
     def image_callback(self, msg):
         #Update planning path every few calls to this.
         if self.counter % self.replan_every_n_frames == 0:
+            self.get_logger().info("[camera.py:GoalPublisher] Getting Trajectory Path")
             image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-            matplotlib.image.imsave('./data/out/frameStart.png', image)
-            matplotlib.image.imsave('./data/out/frameEnd.png', self.final_goal[5])
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            #cv2.cvtColor(cv2.imread(name), cv2.COLOR_BGR2RGB),
+#            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
             self.path = self.find_path(image)
-            self.update_local_goal()
+            self.send_trajectory_images()
+            self.save_trajectory()
         self.counter += 1
 
     def get_path(self, ob, goal, keep_top=10):
@@ -174,6 +222,8 @@ class GoalPublisher(WaypointPublisher):
         return path
 
     def find_path(self, ob):
+        cv2.imwrite('./data/out/frameStart.png', ob)
+        cv2.imwrite('./data/out/frameEnd.png', self.final_goal[5])
         ob = self.cv2_to_model_im(ob)
         goal = self.cv2_to_model_im(self.final_goal[5])
         dst_repr = self.model['sparsifier'].get_dst_repr_single(goal)
@@ -181,7 +231,6 @@ class GoalPublisher(WaypointPublisher):
         #path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.7, allow_subgraph=True)
         if path is None:
             self.get_logger().warning("[camera.py:GoalPublisher] No path found!")
-        self.get_logger().debug("[camera.py:GoalPublisher] Log Likelihood: " + str(log_likelihood))
         return path
 
 
@@ -190,7 +239,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     #Video stream doesnt work when ssh into machine and then run docker. TODO
-    camera_publisher = CameraPublisher(camera_id=0, stream_video=False)
+    camera_publisher = CameraPublisher(camera_id=1, stream_video=False)
     rclpy.spin(camera_publisher)
 
     # Destroy the node explicitly

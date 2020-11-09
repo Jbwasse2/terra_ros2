@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+import cv2
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,15 +10,14 @@ import rclpy
 from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point32, Twist, Vector3
 from rclpy.node import Node
-from sensor_msgs.msg import Image
-
-import cv2
 from rmp_nav.common.utils import (get_gibson_asset_dir, get_project_root,
                                   pprint_dict, str_to_dict)
 from rmp_nav.simulation import agent_factory, sim_renderer
+from sensor_msgs.msg import Image
 from topological_nav.reachability import model_factory
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+matplotlib.use('TkAgg') 
 
 class WaypointPublisher(Node):
 
@@ -32,17 +32,44 @@ class WaypointPublisher(Node):
         self.model = self.get_model()
         self.subscription = self.create_subscription(Image, 'camera', self.image_callback, 1)
         self.publisher_ = self.create_publisher(Twist, 'terra_command_twist', 1)
+        self.subscription = self.create_subscription(Image, 'goal', self.goal_callback, 1)
         self.bridge = CvBridge()
-        self.set_goal()
         self.get_logger().info('Created Waypoint Node')
+        self.goal = None
+        self.goal_show = None
+        self.path_index = 0
+        self.trajectories = []
 
     def get_model(self):
         model = model_factory.get("model_12env_v2_future_pair_proximity_z0228")(
-            device="cpu"
-            #device="cuda"
+            device="cuda"
         )
         return model
 
+    def goal_callback(self, msg):
+        #This callback takes a collection of images sent from the GoalPublisher that it beleives is the trajectory the robot should follow
+        #The received image should be stacked images ie if there are 20 64x64 images, then the resulting image should be 1280x64.
+        self.get_logger().info('[waypoint.py] Trajectory Images Found!')
+        image = self.bridge.imgmsg_to_cv2(msg, "rgb8")
+        image = image / 255
+        IMAGE_HEIGHT = 64
+        number_of_images = int(msg.height / IMAGE_HEIGHT)
+        for i in range(number_of_images):
+            self.trajectories.append(image[IMAGE_HEIGHT*i:IMAGE_HEIGHT*(i+1), :])
+        self.path_index = 5
+        self.update_goal()
+
+    def update_goal(self):
+        #Get 11 images centered around path_index
+        pu.db
+        self.goal = []
+        for i in range(self.path_index-5, self.path_index+6):
+            self.goal.append(self.trajectories[i])
+        self.goal_show = (255*self.goal[5]).astype(np.uint8)
+        self.goal_show = cv2.cvtColor(self.goal_show, cv2.COLOR_RGB2BGR)
+
+
+    #No longer used, goal images are sent from the GoalPublisher
     def set_goal(self):
         def get_img(name):
             a = cv2.resize(
@@ -85,9 +112,17 @@ class WaypointPublisher(Node):
     def image_callback(self, msg):
         self.get_logger().info('I heard {0}'.format(str(msg.header)))
         image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         #The above converts the image to RGB
-        waypoint, reachability_estimator = self.get_wp(image, self.goal)
+        if self.goal is None:
+            self.get_logger().info("[waypoint.py] No goal image, waiting for planner to finish")
+            return
+        pu.db
+        waypoint, reachability_estimator = self.get_wp(image/255, self.goal)
+        self.get_logger().info("Reachability Estimator is {0}".format(str(reachability_estimator)))
+        if reachability_estimator >= 0.95:
+            self.path_index += 1
+            self.update_goal()
         msg = self.create_waypoint_message(waypoint, reachability_estimator)
         self.publisher_.publish(msg)
         #The arrow is strictly for visualization, not used for navigation
@@ -130,6 +165,7 @@ class WaypointPublisher(Node):
     #Can also get list/ np array of images, this should be handled
     def cv2_to_model_im(self,im):
         im = np.asarray(im)
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
         assert len(im.shape) == 3 or len(im.shape) == 4
         if len(im.shape) == 3:
             im = np.swapaxes(im, 0, 2)
