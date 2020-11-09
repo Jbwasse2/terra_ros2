@@ -24,7 +24,7 @@ class DebugCamera(Node):
 #        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
         #The arrow is strictly for visualization, not used for navigation
         counter_string = str(self.counter).rjust(5,'0')
-        cv2.imwrite('./data/trajectory/' + counter_string + '.png', image)
+        cv2.imwrite('./data/trajectory/' + counter_string + '.tiff', image)
         self.counter += 1 
 
 def main(args=None):

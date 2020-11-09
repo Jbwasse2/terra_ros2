@@ -1,6 +1,8 @@
 import matplotlib
+import networkx as nx
 import numpy as np
 import pudb
+from tqdm import tqdm
 
 import cv2
 import rclpy
@@ -78,8 +80,6 @@ class GoalPublisher(WaypointPublisher):
 
     def get_re(self, ob, goal):
         follower = self.model["follower"]
-        goal = self.cv2_to_model_im(goal)
-        ob = self.cv2_to_model_im(ob)
         return follower.sparsifier.predict_reachability(ob, goal),
         
     def set_final_goal(self):
@@ -125,7 +125,6 @@ class GoalPublisher(WaypointPublisher):
     def image_callback(self, msg):
         #Update planning path every few calls to this.
         if self.counter % self.replan_every_n_frames == 0:
-            print("Ya Im running")
             image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
             matplotlib.image.imsave('./data/out/frameStart.png', image)
             matplotlib.image.imsave('./data/out/frameEnd.png', self.final_goal[5])
@@ -134,15 +133,55 @@ class GoalPublisher(WaypointPublisher):
             self.update_local_goal()
         self.counter += 1
 
+    def get_path(self, ob, goal, keep_top=10):
+        assert isinstance(goal, np.ndarray)
+        assert isinstance(ob, np.ndarray)
+        #find starting node
+        nodes = list(self.topological_map.graph.nodes)
+        img_lookup = dict(self.topological_map.graph.nodes.items())
+        #keeps a list of (reachability estimator, node_label)
+        re_tuples = []
+        self.get_logger().info("[camera.py:GoalPublisher] Localizing in Graph...")
+        for node in tqdm(nodes):
+            node_img = img_lookup[node]['dst_repr']
+            re = self.get_re(ob, node_img)
+            re_tuples.append((re, node))
+        re_tuples.sort(key=lambda x: x[0])
+        self.get_logger().info("[camera.py:GoalPublisher] Best RE is " + str(re_tuples[-1]))
+        #Find Goal Node
+        best_re_goal = (0.92, (0,5775))
+        self.get_logger().info("[camera.py:GoalPublisher] Finding Goal in Map...")
+#        for node in tqdm(nodes):
+#            node_img = img_lookup[node]['dst_repr']
+#            re = self.get_re(goal, node_img)
+#            if re > best_re_goal:
+#                best_re_goal = (re, node)
+        self.get_logger().info("[camera.py:GoalPublisher] Found goal in map, Reachability Estimator is " + str(best_re_goal[0]))
+        for start in range(1,keep_top+1):
+            try:
+                path = nx.dijkstra_path(self.topological_map.graph, re_tuples[-start][1], best_re_goal[1])
+            except Exception as e:
+                path = None
+            if path is not None:
+                self.get_logger().info("[camera.py:GoalPublisher] Found self in graph, Reachability Estimator is " + str(re_tuples[-start][0]))
+                a = path[0]
+                b = path[-1]
+                a_img = img_lookup[a]['ob_repr']
+                b_img = img_lookup[b]['ob_repr']
+                self.show_img(a_img)
+                self.show_img(b_img)
+                break
+        return path
+
     def find_path(self, ob):
         ob = self.cv2_to_model_im(ob)
         goal = self.cv2_to_model_im(self.final_goal[5])
         dst_repr = self.model['sparsifier'].get_dst_repr_single(goal)
-        path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.7, allow_subgraph=True)
+        path = self.get_path(ob, goal)
+        #path, log_likelihood, extra = self.topological_map.find_path(ob, dst_repr, edge_add_thres=0.7, allow_subgraph=True)
         if path is None:
             self.get_logger().warning("[camera.py:GoalPublisher] No path found!")
         self.get_logger().debug("[camera.py:GoalPublisher] Log Likelihood: " + str(log_likelihood))
-        pu.db
         return path
 
 
