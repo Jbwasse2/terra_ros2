@@ -1,4 +1,5 @@
 import argparse
+import pickle
 import os
 
 import numpy as np
@@ -25,9 +26,6 @@ def calculate_residual(F, p1, p2):
     L2 = L2 / L2_norm[:, np.newaxis]
     pt_line_dist = np.multiply(L2, P2.T).sum(axis=1)
     return np.mean(np.square(pt_line_dist))
-
-
-
 
 
 def get_residual(img1, img2):
@@ -76,7 +74,7 @@ def main(args):
     look_aheads = []
     for filename in list_files:
         image_list.append(cv2.imread(args["data_location"] + filename, 0))
-    for i in tqdm(range(len(list_files)-1)):
+    for i in tqdm(range(len(list_files)-1-int(args["look_ahead"]))):
         local_look_ahead = []
         for j in range(int(args["look_ahead"])):
             img1 = image_list[i]
@@ -85,8 +83,12 @@ def main(args):
                 local_look_ahead.append(get_residual(img1, img2) )
             except Exception as e:
                 print("Error on image " + str(i) + " and " + str(i+j+1))
+                look_aheads.append(local_look_ahead)
+                break
         look_aheads.append(local_look_ahead)
-    pu.db
+    with open('residual.pkl', 'wb') as f:
+        pickle.dump(look_aheads, f)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
