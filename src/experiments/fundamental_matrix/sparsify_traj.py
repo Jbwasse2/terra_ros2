@@ -34,9 +34,9 @@ def get_residual(img1, img2, flann):
 
     MIN_MATCH_COUNT = 10
     # Initiate SIFT detector
-    sift = cv2.SIFT_create()
     orb = cv2.ORB_create()
 
+    pu.db
     # find the keypoints and descriptors with SIFT
     kp1, des1 = orb.detectAndCompute(img1, None)
     kp2, des2 = orb.detectAndCompute(img2, None)
@@ -48,6 +48,8 @@ def get_residual(img1, img2, flann):
     pts1 = []
     pts2 = []
 
+    #sometimes I get matches that are just a single or no points? This makes sure that matches are made
+    matches = [x for x in matches if len(x) == 2]
     # ratio test as per Lowe's paper
     try:
         for i, (m, n) in enumerate(matches):
@@ -56,15 +58,13 @@ def get_residual(img1, img2, flann):
                 pts2.append(kp2[m.trainIdx].pt)
                 pts1.append(kp1[m.queryIdx].pt)
     except Exception as e:
-        pass
+        print(e)
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
     start = time.time()
-    F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.RANSAC)
+    F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_LMEDS)
 
     # We select only inlier points
-    res_in = calculate_residual(F, pts1, pts2)
-    return res_in
     pts1 = pts1[mask.ravel() == 1]
     pts2 = pts2[mask.ravel() == 1]
     res_in = calculate_residual(F, pts1, pts2)
@@ -82,8 +82,8 @@ def main(args):
 #    index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
     FLANN_INDEX_LSH = 6
     index_params= dict(algorithm = FLANN_INDEX_LSH,
-                       table_number = 6, # 12
-                       key_size = 12,     # 20
+                       table_number = 12, # 12
+                       key_size = 20,     # 20
                        multi_probe_level = 1) #2
     search_params = dict(checks=50)
 
@@ -100,6 +100,7 @@ def main(args):
             except Exception as e:
                 print(e)
                 local_look_ahead.append(np.inf)
+        pu.db
         look_aheads.append(local_look_ahead)
     with open("residual.pkl", "wb") as f:
         pickle.dump(look_aheads, f)

@@ -8,10 +8,11 @@ with open("residual.pkl", "rb") as f:
     residual = pickle.load(f)
 pu.db
 maxes = []
-for l in residual:
+for counter, l in enumerate(residual):
     l = np.array(l)
     l = l[np.isfinite(l)]
     plt.plot(l)
+    plt.title(counter)
     plt.show()
     maxes.append(l.min())
 print(maxes)
