@@ -1,6 +1,5 @@
 import argparse
 import os
-import pickle
 
 import numpy as np
 import pudb
@@ -30,13 +29,11 @@ def calculate_residual(F, p1, p2):
 
 
 def get_residual(img1, img2, flann):
-    import time
 
     MIN_MATCH_COUNT = 10
     # Initiate SIFT detector
     orb = cv2.ORB_create()
 
-    pu.db
     # find the keypoints and descriptors with SIFT
     kp1, des1 = orb.detectAndCompute(img1, None)
     kp2, des2 = orb.detectAndCompute(img2, None)
@@ -61,7 +58,6 @@ def get_residual(img1, img2, flann):
         print(e)
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
-    start = time.time()
     F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_LMEDS)
 
     # We select only inlier points
@@ -71,9 +67,20 @@ def get_residual(img1, img2, flann):
     return res_in
 
 
+def get_images_in_range(start, fin, list_files, data_location):
+    image_list = []
+    for i in range(start, fin):
+        filename = list_files[i]
+        img = cv2.imread(data_location + filename, 0)
+        dim = (int(img.shape[1] * 0.25), int(img.shape[0] * 0.25))
+        img = cv2.resize(img, dim, interpolation=cv2.INTER_AREA)
+        image_list.append(img)
+    if len(image_list) == 1:
+        return image_list[0]
+    return image_list
+
 def main(args):
     # Load images
-    image_list = []
     residual_l = []
     list_files = os.listdir(args["data_location"])
     list_files = natsorted(list_files)
@@ -88,27 +95,38 @@ def main(args):
     search_params = dict(checks=50)
 
     flann = cv2.FlannBasedMatcher(index_params, search_params)
-    for filename in list_files:
-        image_list.append(cv2.imread(args["data_location"] + filename, 0))
+    #This is used to skip over images that are close enough to other images in the trajectory
+    skip_index = 0
+    image_indeces = [0]
     for i in tqdm(range(len(list_files) - 1 - int(args["look_ahead"]))):
+        if i < skip_index:
+            continue
         local_look_ahead = []
+        img1 = get_images_in_range(i,i+1, list_files, args["data_location"])
         for j in range(int(args["look_ahead"])):
-            img1 = image_list[i]
-            img2 = image_list[i + 1 + j]
+            img2 = get_images_in_range(i+1+j, i + 2 + j, list_files, args["data_location"])
             try:
-                local_look_ahead.append(get_residual(img1, img2, flann))
+                residual = get_residual(img1, img2, flann)
+                if residual > int(args["residual_constant"]):
+                    skip_index = i + j
+                    image_indeces.append(skip_index)
+                    break
             except Exception as e:
                 print(e)
-                local_look_ahead.append(np.inf)
-        pu.db
-        look_aheads.append(local_look_ahead)
-    with open("residual.pkl", "wb") as f:
-        pickle.dump(look_aheads, f)
+    create_graphics(image_indeces, list_files, args)
 
+def create_graphics(image_indeces, list_files, args):
+    for counter, index in enumerate(image_indeces):
+        filename = list_files[index]
+        img = cv2.imread(args["data_location"] + filename)
+        img_number = str(counter).zfill(4)
+        cv2.imwrite(args["output_location"] + img_number + ".jpg", img)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sparsifies a trajectory")
     parser.add_argument("-d", "--data_location", help="path to dir where traj data is")
     parser.add_argument("-l", "--look_ahead", help="length to look ahead")
+    parser.add_argument("-o", "--output_location", help="where sparse trajectory gets saved to")
+    parser.add_argument("-r", "--residual_constant", help="Used for sparsifying lower is less sparse, higher is more sparse (try 10)")
     args = vars(parser.parse_args())
     main(args)
