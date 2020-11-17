@@ -11,6 +11,35 @@ from natsort import natsorted, ns
 
 np.random.seed(0)
 
+def fit_fundamental(matches):
+    """
+    Solves for the fundamental matrix using the matches with unnormalized method.
+    """
+    # <YOUR CODE>
+    A = np.zeros((len(matches), 9))
+    for counter, match in enumerate(matches):
+        u = match[0]
+        v = match[1]
+        up = match[2]
+        vp = match[3]
+        t_vector = np.zeros((1, 9))
+        t_vector[0, 0] = up * u
+        t_vector[0, 1] = up * v
+        t_vector[0, 2] = up
+        t_vector[0, 3] = vp * u
+        t_vector[0, 4] = vp * v
+        t_vector[0, 5] = vp
+        t_vector[0, 6] = u
+        t_vector[0, 7] = v
+        t_vector[0, 8] = 1
+        A[counter, :] = t_vector
+    U, S, V = np.linalg.svd(A)
+    S[-1] = 0
+    S = np.diag(S)
+    m, n = A.shape
+    U, S, V = np.linalg.svd(U[:, :n] @ S @ V[:m, :])
+    x = V[-1, :]
+    return x.reshape((3, 3))
 
 def calculate_residual(F, p1, p2):
     """
@@ -50,21 +79,34 @@ def get_residual(img1, img2, flann):
     # ratio test as per Lowe's paper
     try:
         for i, (m, n) in enumerate(matches):
-            if m.distance < 0.8 * n.distance:
-                good.append(m)
-                pts2.append(kp2[m.trainIdx].pt)
-                pts1.append(kp1[m.queryIdx].pt)
+            #if m.distance < 0.8 * n.distance:
+            good.append(m)
+            pts2.append(kp2[m.trainIdx].pt)
+            pts1.append(kp1[m.queryIdx].pt)
     except Exception as e:
         print(e)
     pts1 = np.int32(pts1)
     pts2 = np.int32(pts2)
-    F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_LMEDS)
+   # F1, mask = cv2.findFundamentalMat(pts1, pts2, cv2.FM_LMEDS)
+#    F, mask = cv2.findFundamentalMat(pts1, pts2, cv2.RANSAC)
+    matches = np.hstack([pts1,pts2])
+    #Average over res
+    res_in2 = 0
+    usedFlag = False
+    for i in range(1000):
+        if matches.shape[0] < 50:
+            continue
+        F2 = fit_fundamental(matches[np.random.choice(matches.shape[0], 8, replace=False)])
+        temp = calculate_residual(F2, pts1, pts2)
+        res_in2 += temp
+        usedFlag = True
+    res_in2 = res_in2 / 1000
 
     # We select only inlier points
-    pts1 = pts1[mask.ravel() == 1]
-    pts2 = pts2[mask.ravel() == 1]
-    res_in = calculate_residual(F, pts1, pts2)
-    return res_in
+#    pts1 = pts1[mask.ravel() == 1]
+#    pts2 = pts2[mask.ravel() == 1]
+#    res_in = calculate_residual(F1, pts1, pts2)
+    return res_in2 if usedFlag else np.inf
 
 
 def get_images_in_range(start, fin, list_files, data_location):
@@ -98,13 +140,20 @@ def main(args):
     #This is used to skip over images that are close enough to other images in the trajectory
     skip_index = 0
     image_indeces = [0]
-    for i in tqdm(range(len(list_files) - 1 - int(args["look_ahead"]))):
+    for i in tqdm(range(len(list_files))):
         if i < skip_index:
             continue
         local_look_ahead = []
         img1 = get_images_in_range(i,i+1, list_files, args["data_location"])
-        for j in range(int(args["look_ahead"])):
-            img2 = get_images_in_range(i+1+j, i + 2 + j, list_files, args["data_location"])
+        j = 0
+        while(1):
+            try:
+                img2 = get_images_in_range(i+1+j, i + 2 + j, list_files, args["data_location"])
+            except Exception as e:
+                print(e)
+                skip_index = i + j
+                break
+            j += 1
             try:
                 residual = get_residual(img1, img2, flann)
                 if residual > int(args["residual_constant"]):
@@ -125,7 +174,6 @@ def create_graphics(image_indeces, list_files, args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Sparsifies a trajectory")
     parser.add_argument("-d", "--data_location", help="path to dir where traj data is")
-    parser.add_argument("-l", "--look_ahead", help="length to look ahead")
     parser.add_argument("-o", "--output_location", help="where sparse trajectory gets saved to")
     parser.add_argument("-r", "--residual_constant", help="Used for sparsifying lower is less sparse, higher is more sparse (try 10)")
     args = vars(parser.parse_args())
